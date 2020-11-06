@@ -86,29 +86,32 @@ resource "aws_organizations_account" "accounts" {
   parent_id = aws_organizations_organizational_unit.environments[each.key].id
 }
 
-data "aws_iam_policy_document" "ci_assume_role" {
-  statement {
-    actions = ["sts:AssumeRole"]
-    principals {
-      type = "Service"
-      identifiers = ["ec2.amazonaws.com"]
-    }
-  }
-}
-
-resource "aws_iam_role" "root_ci" {
-  name = "root_ci"
-  assume_role_policy = data.aws_iam_policy_document.ci_assume_role.json
-}
-
 resource "aws_iam_group" "root_ci" {
   name = "ci"
   path = "/infrastructure/"
 }
 
-resource "aws_iam_group_policy_attachment" "root_ci" {
+resource "aws_iam_group_policy_attachment" "root_ci_admin" {
   group = aws_iam_group.root_ci.id
   policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+}
+
+data "aws_iam_policy_document" "root_ci_assume_role" {
+  statement {
+    actions = ["sts:AssumeRole"]
+    resources = [ for environment in var.environments : "arn:aws:iam::${aws_organizations_account.accounts[environment].id}:role/OrganizationAccountAccessRole" ]
+  }
+}
+
+resource "aws_iam_policy" "root_ci_assume_role" {
+  name = "CIAssumeRole"
+  policy = data.aws_iam_policy_document.root_ci_assume_role.json
+}
+
+resource "aws_iam_group_policy_attachment" "root_ci_org_unit_admin" {
+  for_each = toset(var.environments)
+  group = aws_iam_group.root_ci.id
+  policy_arn = aws_iam_policy.root_ci_assume_role.arn
 }
 
 resource "aws_iam_user" "root_ci" {
