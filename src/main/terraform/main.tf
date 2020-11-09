@@ -1,4 +1,6 @@
 terraform {
+  required_version = ">= 0.13"
+
   backend "s3" {
     // From backend.config or command line
     encrypt = true
