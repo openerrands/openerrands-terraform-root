@@ -100,7 +100,7 @@ resource "aws_iam_group_policy_attachment" "root_ci_admin" {
 
 data "aws_iam_policy_document" "root_ci_assume_role" {
   statement {
-    actions = ["sts:AssumeRole", "sts:TagSession"]
+    actions = [ "sts:AssumeRole" ]
     resources = [ for environment in var.environments : "arn:aws:iam::${aws_organizations_account.accounts[environment].id}:role/OrganizationAccountAccessRole" ]
   }
 }
